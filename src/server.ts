@@ -45,6 +45,44 @@ app.get('/exchange-authorization-code', async (request, response) => {
   }
 });
 
+app.post('/invitation', async (request, response) => {
+  const invitationData = request.body;
+
+  const requestBody: querystring.ParsedUrlQueryInput = {
+    grant_type: 'client_credentials',
+  };
+
+  try {
+    const session = await axios({
+      method: 'POST',
+      url: 'http://localhost:8099/services/login/oauth2/token',
+      data: querystring.stringify(requestBody),
+      auth: {
+        username: 'efd13589-03ee-42e1-99e0-8134eecf5ae7', // client id
+        password: '028573e7-0c59-4700-9724-c16e01350e3c', // secret key
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    await axios({
+      method: 'POST',
+      url: 'http://localhost:8099/services/login/api/v1/users/invitation',
+      data: invitationData,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.data.access_token}`,
+      },
+    });
+    return response.send();
+  } catch (error) {
+    const { message } = error.response.data;
+    const { statusCode } = error.response;
+    throw new AppError(message, statusCode);
+  }
+});
+
 app.use((err: Error, request: Request, response: Response, _: NextFunction) => {
   if (err instanceof AppError) {
     return response.status(err.statusCode).json({
